@@ -1,0 +1,155 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace LibraryManagementSystem
+{
+    public class Book
+    {
+        public string Title { get; set; }
+        public string Author { get; set; }
+        public string ISBN { get; set; }
+        public bool IsAvailable { get; set; }
+
+        public Book(string title, string author, string isbn)
+        {
+            Title = title;
+            Author = author;
+            ISBN = isbn;
+            IsAvailable = true;
+        }
+
+        public override string ToString()
+        {
+            return $"Название: {Title}, Автор: {Author}, ISBN: {ISBN}, Доступна: {IsAvailable}";
+        }
+    }
+
+    public class Reader
+    {
+        public string Name { get; set; }
+        public List<Book> RentedBooks { get; private set; } = new List<Book>();
+        private const int MaxBooksAllowed = 3;
+
+        public Reader(string name)
+        {
+            Name = name;
+        }
+
+        public bool RentBook(Book book)
+        {
+            if (RentedBooks.Count >= MaxBooksAllowed)
+            {
+                Console.WriteLine($"{Name} не может взять больше {MaxBooksAllowed} книг.");
+                return false;
+            }
+
+            if (book.IsAvailable)
+            {
+                book.IsAvailable = false;
+                RentedBooks.Add(book);
+                Console.WriteLine($"{Name} успешно взял(а) книгу '{book.Title}'.");
+                return true;
+            }
+
+            Console.WriteLine($"Книга '{book.Title}' недоступна.");
+            return false;
+        }
+
+        public void ReturnBook(Book book)
+        {
+            if (RentedBooks.Remove(book))
+            {
+                book.IsAvailable = true;
+                Console.WriteLine($"{Name} вернул(а) книгу '{book.Title}'.");
+            }
+            else
+            {
+                Console.WriteLine($"{Name} не имеет книгу '{book.Title}'.");
+            }
+        }
+    }
+
+    public class Librarian
+    {
+        public string Name { get; set; }
+
+        public Librarian(string name)
+        {
+            Name = name;
+        }
+
+        public void AddBook(Library library, Book book)
+        {
+            library.Books.Add(book);
+            Console.WriteLine($"{Name} добавил(а) книгу '{book.Title}' в библиотеку.");
+        }
+
+        public void RemoveBook(Library library, Book book)
+        {
+            if (library.Books.Remove(book))
+            {
+                Console.WriteLine($"{Name} удалил(а) книгу '{book.Title}' из библиотеки.");
+            }
+            else
+            {
+                Console.WriteLine($"Книга '{book.Title}' не найдена в библиотеке.");
+            }
+        }
+    }
+
+    public class Library
+    {
+        public List<Book> Books { get; set; } = new List<Book>();
+
+        public void DisplayBooks()
+        {
+            foreach (var book in Books)
+            {
+                Console.WriteLine(book);
+            }
+        }
+
+        public List<Book> SearchBooks(string query)
+        {
+            return Books.Where(b => b.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                                    b.Author.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Library library = new Library();
+            Librarian librarian = new Librarian("Бекнур");
+            Reader reader = new Reader("Гульнур");
+
+            Book book1 = new Book("Программирование на C#", "Автор А", "123-ABC");
+            Book book2 = new Book("Думай и богатей", "Автор Б", "456-DEF");
+            Book book3 = new Book("Богатый папа, бедный папа", "Автор В", "789-GHI");
+
+            librarian.AddBook(library, book1);
+            librarian.AddBook(library, book2);
+            librarian.AddBook(library, book3);
+
+            Console.WriteLine("\nДоступные книги в библиотеке:");
+            library.DisplayBooks();
+
+            reader.RentBook(book1);
+            Console.WriteLine("\nДоступные книги после аренды:");
+            library.DisplayBooks();
+
+            reader.ReturnBook(book1);
+            Console.WriteLine("\nДоступные книги после возврата:");
+            library.DisplayBooks();
+
+            Console.WriteLine("\nПоиск книг по автору 'Автор Б':");
+            var searchResults = library.SearchBooks("Автор Б");
+            foreach (var book in searchResults)
+            {
+                Console.WriteLine(book);
+            }
+        }
+    }
+}
