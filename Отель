@@ -1,0 +1,172 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace HotelBookingSystem
+{
+    public interface IHotelService
+    {
+        void AddHotel(string name, string location, string roomType, decimal price);
+        List<string> SearchHotels(string location, string roomType, decimal maxPrice);
+    }
+
+    public interface IBookingService
+    {
+        bool BookRoom(string userId, string hotelName, DateTime startDate, DateTime endDate);
+        bool CheckAvailability(string hotelName, DateTime startDate, DateTime endDate);
+    }
+
+    public interface IPaymentService
+    {
+        bool ProcessPayment(string userId, decimal amount, string paymentMethod);
+    }
+
+    public interface INotificationService
+    {
+        void SendNotification(string userId, string message);
+    }
+
+    public interface IUserManagementService
+    {
+        bool RegisterUser(string username, string password);
+        bool AuthenticateUser(string username, string password);
+    }
+
+    public class HotelService : IHotelService
+    {
+        private List<Hotel> hotels = new List<Hotel>();
+
+        public void AddHotel(string name, string location, string roomType, decimal price)
+        {
+            hotels.Add(new Hotel { Name = name, Location = location, RoomType = roomType, Price = price });
+            Console.WriteLine($"Отель '{name}' добавлен.");
+        }
+
+        public List<string> SearchHotels(string location, string roomType, decimal maxPrice)
+        {
+            var results = hotels
+                .Where(h => h.Location.Equals(location, StringComparison.OrdinalIgnoreCase) && h.RoomType.Equals(roomType, StringComparison.OrdinalIgnoreCase) && h.Price <= maxPrice)
+                .Select(h => $"{h.Name} - {h.RoomType} - {h.Price}₸")
+                .ToList();
+
+            return results.Count > 0 ? results : new List<string> { "Нет доступных отелей по указанным критериям." };
+        }
+    }
+
+    public class BookingService : IBookingService
+    {
+        private List<Booking> bookings = new List<Booking>();
+
+        public bool BookRoom(string userId, string hotelName, DateTime startDate, DateTime endDate)
+        {
+            if (CheckAvailability(hotelName, startDate, endDate))
+            {
+                bookings.Add(new Booking { UserId = userId, HotelName = hotelName, StartDate = startDate, EndDate = endDate });
+                Console.WriteLine($"Бронирование отеля '{hotelName}' для пользователя '{userId}' успешно.");
+                return true;
+            }
+
+            Console.WriteLine($"Отель '{hotelName}' недоступен для бронирования на указанные даты.");
+            return false;
+        }
+
+        public bool CheckAvailability(string hotelName, DateTime startDate, DateTime endDate)
+        {
+            return !bookings.Any(b => b.HotelName.Equals(hotelName, StringComparison.OrdinalIgnoreCase) &&
+                                      ((startDate >= b.StartDate && startDate <= b.EndDate) ||
+                                       (endDate >= b.StartDate && endDate <= b.EndDate)));
+        }
+    }
+
+    public class PaymentService : IPaymentService
+    {
+        public bool ProcessPayment(string userId, decimal amount, string paymentMethod)
+        {
+            Console.WriteLine($"Оплата на сумму {amount}₸ пользователем '{userId}' через '{paymentMethod}' успешно проведена.");
+            return true;
+        }
+    }
+
+    public class NotificationService : INotificationService
+    {
+        public void SendNotification(string userId, string message)
+        {
+            Console.WriteLine($"Уведомление пользователю '{userId}': {message}");
+        }
+    }
+
+    public class UserManagementService : IUserManagementService
+    {
+        private Dictionary<string, string> users = new Dictionary<string, string>();
+
+        public bool RegisterUser(string username, string password)
+        {
+            if (!users.ContainsKey(username))
+            {
+                users[username] = password;
+                Console.WriteLine($"Пользователь '{username}' успешно зарегистрирован.");
+                return true;
+            }
+
+            Console.WriteLine($"Пользователь '{username}' уже существует.");
+            return false;
+        }
+
+        public bool AuthenticateUser(string username, string password)
+        {
+            if (users.TryGetValue(username, out var storedPassword) && storedPassword == password)
+            {
+                Console.WriteLine($"Пользователь '{username}' успешно аутентифицирован.");
+                return true;
+            }
+
+            Console.WriteLine($"Неверные учетные данные для пользователя '{username}'.");
+            return false;
+        }
+    }
+
+    public class Hotel
+    {
+        public string Name { get; set; }
+        public string Location { get; set; }
+        public string RoomType { get; set; }
+        public decimal Price { get; set; }
+    }
+
+    public class Booking
+    {
+        public string UserId { get; set; }
+        public string HotelName { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            var hotelService = new HotelService();
+            var bookingService = new BookingService();
+            var paymentService = new PaymentService();
+            var notificationService = new NotificationService();
+            var userManagementService = new UserManagementService();
+
+            userManagementService.RegisterUser("Айбек", "password1");
+            userManagementService.AuthenticateUser("Айбек", "password1");
+
+            hotelService.AddHotel("Самрук", "Алматы", "Стандарт", 35000);
+            hotelService.AddHotel("Dem-al", "Астана", "Люкс", 50000);
+
+            Console.WriteLine("\nРезультаты поиска отелей в 'Алматы':");
+            var searchResults = hotelService.SearchHotels("Алматы", "Стандарт", 37000);
+            searchResults.ForEach(Console.WriteLine);
+
+            bookingService.BookRoom("Айбек", "Самрук", DateTime.Now.AddDays(1), DateTime.Now.AddDays(5));
+
+            
+            paymentService.ProcessPayment("Айбек", 35000, "Карта");
+
+            notificationService.SendNotification("Айбек", "Ваше бронирование подтверждено.");
+        }
+    }
+}
